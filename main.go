@@ -8,7 +8,48 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+
+	"golang.org/x/text/language"
 )
+
+// 消息本地化
+var msg map[string]map[string]string
+
+// 初始化消息
+func init() {
+	msg = make(map[string]map[string]string)
+	msg["en"] = map[string]string{
+		"specifyPort":       "Please specify a port number.",
+		"unsupportedOS":     "Unsupported operating system: %s\n",
+		"errorFindingPort":  "Error finding port: %v\n",
+		"noProcessFound":    "No process found occupying port %s.\n",
+		"process":           "Process: %s\n",
+		"terminateProcess":  "Do you want to terminate this process? [y/N]: ",
+		"unableToTerminate": "Unable to terminate process %s: %v\n",
+		"processTerminated": "Process %s has been terminated.\n",
+	}
+	msg["zh"] = map[string]string{
+		"specifyPort":       "请指定一个端口号。",
+		"unsupportedOS":     "不支持的操作系统: %s\n",
+		"errorFindingPort":  "查找端口时发生错误: %v\n",
+		"noProcessFound":    "没有找到占用端口 %s 的进程。\n",
+		"process":           "进程: %s\n",
+		"terminateProcess":  "是否终止此进程? [y/N]: ",
+		"unableToTerminate": "无法终止进程 %s: %v\n",
+		"processTerminated": "进程 %s 已终止。\n",
+	}
+}
+
+// detectLanguage 检测系统语言
+func detectLanguage() string {
+	langEnv := os.Getenv("LANG")
+	langTag, err := language.Parse(langEnv)
+	if err != nil {
+		return "en" // 默认为英文
+	}
+	base, _ := langTag.Base()
+	return base.String()
+}
 
 // findProcessWindows 在Windows上查找占用特定端口的进程
 func findProcessWindows(port string) ([]string, error) {
@@ -32,11 +73,8 @@ func findProcessWindows(port string) ([]string, error) {
 func findProcessUnix(port string) ([]string, error) {
 	cmd := exec.Command("lsof", "-i", "tcp:"+port)
 	output, err := cmd.CombinedOutput()
-
-	// 如果错误是因为没有找到匹配的进程，则返回空切片而不是错误
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
-			// lsof 未找到匹配的进程
 			if exitErr.ExitCode() == 1 {
 				return []string{}, nil
 			}
@@ -67,67 +105,64 @@ func killProcess(pid string) error {
 }
 
 // confirmAndKill 显示进程信息，并询问用户是否终止进程
-func confirmAndKill(processes []string) {
+func confirmAndKill(processes []string, lang string) {
 	reader := bufio.NewReader(os.Stdin)
 	for _, process := range processes {
-		fmt.Printf("进程: %s\n", process)
+		fmt.Printf(msg[lang]["process"], process)
 
-		// 提取PID，Windows和Unix-like系统的输出格式可能有差异
 		fields := strings.Fields(process)
 		var pid string
 		if runtime.GOOS == "windows" {
-			pid = fields[len(fields)-1] // Windows: PID在最后
+			pid = fields[len(fields)-1]
 		} else {
-			pid = fields[1] // Unix-like: PID通常在第二列
+			pid = fields[1]
 		}
 
-		fmt.Print("是否终止此进程? [y/N]: ")
+		fmt.Print(msg[lang]["terminateProcess"])
 		response, _ := reader.ReadString('\n')
 		if strings.TrimSpace(response) == "y" {
 			err := killProcess(pid)
 			if err != nil {
-				fmt.Printf("无法终止进程 %s: %v\n", pid, err)
+				fmt.Printf(msg[lang]["unableToTerminate"], pid, err)
 			} else {
-				fmt.Printf("进程 %s 已终止。\n", pid)
+				fmt.Printf(msg[lang]["processTerminated"], pid)
 			}
 		}
 	}
 }
 
 func main() {
-	// 解析命令行参数以获取端口号
+	lang := detectLanguage()
+
 	flag.Parse()
 	port := flag.Arg(0)
 	if port == "" {
-		fmt.Println("请指定一个端口号。")
+		fmt.Println(msg[lang]["specifyPort"])
 		return
 	}
 
 	var processes []string
 	var err error
 
-	// 根据操作系统调用不同的函数
 	switch runtime.GOOS {
 	case "windows":
 		processes, err = findProcessWindows(port)
 	case "darwin", "linux":
 		processes, err = findProcessUnix(port)
 	default:
-		fmt.Printf("不支持的操作系统: %s\n", runtime.GOOS)
+		fmt.Printf(msg[lang]["unsupportedOS"], runtime.GOOS)
 		return
 	}
 
 	if err != nil {
-		fmt.Printf("查找端口时发生错误: %v\n", err)
+		fmt.Printf(msg[lang]["errorFindingPort"], err)
 		return
 	}
 
-	// 如果没有找到进程，则退出
 	if len(processes) == 0 {
-		fmt.Printf("没有找到占用端口 %s 的进程。\n", port)
+		fmt.Printf(msg[lang]["noProcessFound"], port)
 		return
 	}
 
-	// 显示进程信息并询问用户是否终止
-	confirmAndKill(processes)
+	confirmAndKill(processes, lang)
 }
