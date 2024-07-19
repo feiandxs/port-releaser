@@ -1,4 +1,4 @@
-name: Build and Release Port-Releaser
+name: Build and Release Port-Releaser Workflow
 
 on:
   push:
