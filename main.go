@@ -9,36 +9,9 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/feiandxs/port-releaser/i18n"
 	"golang.org/x/text/language"
 )
-
-// 消息本地化
-var msg map[string]map[string]string
-
-// 初始化消息
-func init() {
-	msg = make(map[string]map[string]string)
-	msg["en"] = map[string]string{
-		"specifyPort":       "Please specify a port number.",
-		"unsupportedOS":     "Unsupported operating system: %s\n",
-		"errorFindingPort":  "Error finding port: %v\n",
-		"noProcessFound":    "No process found occupying port %s.\n",
-		"process":           "Process: %s\n",
-		"terminateProcess":  "Do you want to terminate this process? [y/N]: ",
-		"unableToTerminate": "Unable to terminate process %s: %v\n",
-		"processTerminated": "Process %s has been terminated.\n",
-	}
-	msg["zh"] = map[string]string{
-		"specifyPort":       "请指定一个端口号。",
-		"unsupportedOS":     "不支持的操作系统: %s\n",
-		"errorFindingPort":  "查找端口时发生错误: %v\n",
-		"noProcessFound":    "没有找到占用端口 %s 的进程。\n",
-		"process":           "进程: %s\n",
-		"terminateProcess":  "是否终止此进程? [y/N]: ",
-		"unableToTerminate": "无法终止进程 %s: %v\n",
-		"processTerminated": "进程 %s 已终止。\n",
-	}
-}
 
 // detectLanguage 检测系统语言
 func detectLanguage() string {
@@ -48,7 +21,13 @@ func detectLanguage() string {
 		return "en" // 默认为英文
 	}
 	base, _ := langTag.Base()
-	return base.String()
+	langCode := base.String()
+
+	// 检查语言是否支持，如果不支持则返回英文
+	if _, ok := i18n.Messages[langCode]; !ok {
+		return "en"
+	}
+	return langCode
 }
 
 // findProcessWindows 在Windows上查找占用特定端口的进程
@@ -108,7 +87,7 @@ func killProcess(pid string) error {
 func confirmAndKill(processes []string, lang string) {
 	reader := bufio.NewReader(os.Stdin)
 	for _, process := range processes {
-		fmt.Printf(msg[lang]["process"], process)
+		fmt.Printf(i18n.Messages[lang]["process"], process)
 
 		fields := strings.Fields(process)
 		var pid string
@@ -118,14 +97,14 @@ func confirmAndKill(processes []string, lang string) {
 			pid = fields[1]
 		}
 
-		fmt.Print(msg[lang]["terminateProcess"])
+		fmt.Print(i18n.Messages[lang]["terminateProcess"])
 		response, _ := reader.ReadString('\n')
 		if strings.TrimSpace(response) == "y" {
 			err := killProcess(pid)
 			if err != nil {
-				fmt.Printf(msg[lang]["unableToTerminate"], pid, err)
+				fmt.Printf(i18n.Messages[lang]["unableToTerminate"], pid, err)
 			} else {
-				fmt.Printf(msg[lang]["processTerminated"], pid)
+				fmt.Printf(i18n.Messages[lang]["processTerminated"], pid)
 			}
 		}
 	}
@@ -137,7 +116,7 @@ func main() {
 	flag.Parse()
 	port := flag.Arg(0)
 	if port == "" {
-		fmt.Println(msg[lang]["specifyPort"])
+		fmt.Println(i18n.Messages[lang]["specifyPort"])
 		return
 	}
 
@@ -150,17 +129,17 @@ func main() {
 	case "darwin", "linux":
 		processes, err = findProcessUnix(port)
 	default:
-		fmt.Printf(msg[lang]["unsupportedOS"], runtime.GOOS)
+		fmt.Printf(i18n.Messages[lang]["unsupportedOS"], runtime.GOOS)
 		return
 	}
 
 	if err != nil {
-		fmt.Printf(msg[lang]["errorFindingPort"], err)
+		fmt.Printf(i18n.Messages[lang]["errorFindingPort"], err)
 		return
 	}
 
 	if len(processes) == 0 {
-		fmt.Printf(msg[lang]["noProcessFound"], port)
+		fmt.Printf(i18n.Messages[lang]["noProcessFound"], port)
 		return
 	}
 
