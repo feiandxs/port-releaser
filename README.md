@@ -1,6 +1,6 @@
 # Port-Releaser
 
-Port-Releaser is a cross-platform command-line tool designed to identify and optionally terminate processes that are occupying specific ports. It supports Windows, macOS, and Linux, making it a versatile tool for developers and system administrators.
+A simple tool to release occupied ports.
 
 ## Features
 
@@ -10,29 +10,23 @@ Port-Releaser is a cross-platform command-line tool designed to identify and opt
 
 ## Installation
 
-To install Port-Releaser, clone this repository and build the tool using Go:
-
 ```bash
-git clone https://github.com/feiandxs/port-releaser.git
-cd port-releaser
-go build
+go install github.com/codenamev/port-releaser@latest
 ```
 
-## Usage
-
-To use Port-Releaser, simply run the following command with the desired port number:
+## Quick Usage
 
 ```bash
-./port-releaser <port-number>
+port-releaser -p 3000
 ```
 
-For example, to find the process using port 8080:
+For more detailed documentation in other languages, please check:
 
-```bash
-./port-releaser 8080
-```
-
-The tool will list any processes using the specified port and prompt you to terminate them if desired.
+- [简体中文](README_zh.md)
+- [日本語](docs/README.jp.md)
+- [Español](docs/README.es.md)
+- [Français](docs/README.fr.md)
+- [Deutsch](docs/README.de.md)
 
 ## Contributing
 
@@ -40,4 +34,14 @@ Contributions to Port-Releaser are welcome and appreciated. If you have suggesti
 
 ## License
 
-Forget about it, all codes in `main.go` are from ChatGPT.
+This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0).
+
+You are free to:
+- Share — copy and redistribute the material in any medium or format
+- Adapt — remix, transform, and build upon the material
+
+Under the following terms:
+- Attribution — You must give appropriate credit, provide a link to the license, and indicate if changes were made
+- NonCommercial — You may not use the material for commercial purposes without explicit permission from the author
+
+For more details: https://creativecommons.org/licenses/by-nc/4.0/
